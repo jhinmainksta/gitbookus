@@ -47,7 +47,7 @@ jobs:
       run: gitbook install # танавливаем необходимые плагины GitBook
 
     - name: Build GitBook
-      run: gitbook build # Собираем проект с помощью GitBook
+      run: gitbook build --gitbook=3.2.2 # Собираем проект с помощью GitBook
 
     - name: Upload Website to Release
       if: ${{ github.event_name == 'release' }}
