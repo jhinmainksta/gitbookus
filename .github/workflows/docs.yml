@@ -1,0 +1,59 @@
+name: Deploy Gitbook to GitHub Pages
+
+# Указываем триггер для запуска workflow при пуше в ветку main
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  release:
+    types: [ created ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04 # Используем последнюю версию Ubuntu
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2 # Шаг для клонирования репозитория
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2 # Шаг для установки Node.js
+      with:
+        node-version: '10' # Указываем версию Node.js
+
+    - name: Setup and run markdownlint
+      run: |
+        npm install markdownlint-cli@0.28.1 -g # FIXME: https://github.com/DavidAnson/markdownlint/issues/435
+        markdownlint -V
+        markdownlint docs
+        
+    - name: Install GitBook CLI
+      run: |
+        chmod ug+x scripts/install_gitbook.sh # Устанавливаем GitBook CLI глобально
+        ./scripts/install_gitbook.sh
+
+    - name: Install GitBook plugins
+      run: gitbook install # танавливаем необходимые плагины GitBook
+
+    - name: Build GitBook
+      run: gitbook build # Собираем проект с помощью GitBook
+
+    - name: Upload Website to Release
+      if: ${{ github.event_name == 'release' }}
+      run: |
+          zip -r Website.zip docs_folder
+          release_tag="${{ github.event.release.tag_name }}"
+          release_id=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" "https://api.github.com/repos/jhinmainksta/test_image/releases/tags/$release_tag" | jq -r '.id')
+          echo "Uploading Website.zip to Release #$release_id"
+          curl -s -X POST -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" -H "Content-Type: application/octet-stream" --data-binary "@Website.zip" "https://uploads.github.com/repos/jhinmainksta/test_image/releases/$release_id/assets?name=Website.zip"
