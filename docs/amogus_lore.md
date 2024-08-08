@@ -2,4 +2,4 @@
 
 tun tun tun tun tun tun tun tududun
 
-<img src="../assets/impostor" width=400></img>
+![amogus](assets/amogus.png)
